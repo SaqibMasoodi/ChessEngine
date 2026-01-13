@@ -28,10 +28,14 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
 
-    gs = ChessEngine.GameState()  # Initialize the game state
-    loadImages()  # Load images before entering the game loop
+    gs = ChessEngine.GameState()     #Initialize the game state
+    validMoves = []
+    validMoves = gs.getValidMoves()    #Will store the valid moveset at each turn to compare with the players 
+    moveMade = False                 #Move detector flag
+    
+    loadImages()      #Load images before entering the game loop
 
-    sqSelected = () #Click, empty initially (x, y)
+    sqSelected = ()   #Click, empty initially (x, y)
     playerClicks = [] #[(x1, y1), (x2, y2)]
     
     running = True
@@ -39,32 +43,81 @@ def main():
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
-            elif e.type == p.MOUSEBUTTONDOWN: #Mouse logic
+            elif e.type == p.MOUSEBUTTONDOWN:       #Mouse logic
                 location = p.mouse.get_pos() 
                 col = location[0]//SQ_SIZE
                 row = location[1]//SQ_SIZE
-                if sqSelected == (row, col): #Case where same tile is clicked twice
+                if sqSelected == (row, col):        #Case where same tile is clicked twice
                     sqSelected = ()
                     playerClicks = []
                 else:
                     sqSelected = (row, col)
                     playerClicks.append(sqSelected)
-                if len(playerClicks) == 2: #Two clicks are registered
+                if len(playerClicks) == 2:          #Two clicks are registered
                     move = ChessEngine.Move(playerClicks[0], playerClicks[1], gs.board )
                     print(move.getChessNotation())
-                    gs.makeMove(move)
-                    sqSelected = () #reset clicks
+                    if move in validMoves:          
+                        gs.makeMove(move)
+                        moveMade = True
+                    sqSelected = ()                 #Reset clicks
                     playerClicks = []
+                    
+            elif e.type == p.KEYDOWN:
+                if e.key == p.K_z:                  #Undo on z click
+                    if len(gs.moveLog) > 0:         #Check if there's a move to undo
+                        gs.undoMove()
+                        moveMade = True
+                        print("Undo")
+        
+        if moveMade :
+            validMoves = gs.getValidMoves()
+            movemade = not moveMade
     
-        drawGameState(screen, gs)
+        drawGameState(screen, gs, validMoves, sqSelected)
+        
+        if gs.checkMate:
+            gameOver = True
+            if gs.whiteToMove:
+                drawText(screen, 'Black wins by checkmate')
+            else:
+                drawText(screen, 'White wins by checkmate')
+        elif gs.staleMate:
+            gameOver = True
+            drawText(screen, 'Stalemate')
+
         clock.tick(MAX_FPS)
         p.display.flip()
 
 
-def drawGameState(screen, gs):
+def highlightSquares(screen, gs, validMoves, sqSelected):
+    """Highlight square selected and moves for piece selected"""
+    if sqSelected != ():
+        r, c = sqSelected
+        if gs.board[r][c][0] == ('w' if gs.whiteToMove else 'b'): # sqSelected is a piece that can be moved
+            # highlight selected square
+            s = p.Surface((SQ_SIZE, SQ_SIZE))
+            s.set_alpha(100) # transparency value -> 0 transparent; 255 opaque
+            s.fill(p.Color('blue'))
+            screen.blit(s, (c*SQ_SIZE, r*SQ_SIZE))
+            # highlight moves from that square
+            s.fill(p.Color('yellow'))
+            for move in validMoves:
+                if move.startRow == r and move.startCol == c:
+                    screen.blit(s, (move.endCol*SQ_SIZE, move.endRow*SQ_SIZE))
+
+def drawGameState(screen, gs, validMoves, sqSelected):
     """Draw the current game state."""
     drawBoard(screen)             # Draw squares
+    highlightSquares(screen, gs, validMoves, sqSelected) # Draw highlights
     drawPieces(screen, gs.board)  # Draw pieces
+
+def drawText(screen, text):
+    font = p.font.SysFont("Helvitca", 32, True, False)
+    textObject = font.render(text, 0, p.Color('Gray'))
+    textLocation = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - textObject.get_width()/2, HEIGHT/2 - textObject.get_height()/2)
+    screen.blit(textObject, textLocation)
+    textObject = font.render(text, 0, p.Color("Black"))
+    screen.blit(textObject, textLocation.move(2, 2))
 
 
 def drawBoard(screen):

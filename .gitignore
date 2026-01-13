@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+venv/
+env/
+
+# System
+Thumbs.db
+Desktop.ini
+
+# Agentic
+.gemini/
