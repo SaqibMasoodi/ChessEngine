@@ -1,6 +1,7 @@
 # Chess Engine
 
-A robust, fully functional Chess application built with Python and Pygame. This engine implements the complete set of standard rules including Castling, En Passant, and Pawn Promotion/
+Fully functional Chess application built with Python and Pygame. 
+Implements the complete set of standard rules including Castling, En Passant, and Pawn Promotion
 
 ## Features
 - **Complete Ruleset**: Supports standard moves, Castling, En Passant, and Pawn Promotion.
