@@ -50,6 +50,20 @@ The engine uses a "Pseudo-Legal" to "Legal" move generation pipeline:
 | **Evaluation** | None | Neural Nets (NNUE), Hand-tuned Heuristics |
 | **Strength** | **0 ELO** (Rule Enforcer) | **3500+ ELO** (Superhuman) |
 
+### 4. User Interface (Python/PyGame)
+The primary interface is built using **PyGame** in `ChessMain.py`.
+-   **Game Loop**: A standard event loop runs at 15 FPS, handling user input (mouse clicks) and rendering updates.
+-   **Visuals**:
+    -   **Board & Pieces**: Renders the 8x8 grid and overlays PNG images for pieces.
+    -   **Move Log**: A custom-drawn panel (`drawMoveLog`) displays the history of moves in algebraic notation, constructed manually via text blitting.
+    -   **Highlights**: Selected squares and valid moves are highlighted for better UX.
+
+## 5. Standalone Web Preview
+A separate, frontend-only preview is available in `index.html`.
+-   **Purpose**: To demonstrate a modernized, aesthetic UI concept ("Retro Tactile") without taking a dependency on the Python backend.
+-   **Tech Stack**: HTML, **Tailwind CSS** (via CDN for styling), and Vanilla JavaScript (for board generation and simple interactivity).
+-   **Status**: This is a *visual prototype*. It has no game logic, rule enforcement, or AI connectivity. It solely renders a static board state or simple interactive demo.
+
 ## Conclusion
 This engine is a **foundational framework** for a Chess UI. It correctly enforces the rules of Chess, allowing two humans to play. To make it "smart" (AI), one would need to add:
 1.  **Evaluation Function**: To score a board position (e.g., Material count).
