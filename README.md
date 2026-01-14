@@ -2,6 +2,8 @@
 
 We will dethrone chess.com in sha Allah
 
+[**Live Web Preview**](https://saqibmasoodi.github.io/ChessEngine/)
+
 ## Features
 
 Works the way chess works
