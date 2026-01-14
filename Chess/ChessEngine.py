@@ -30,6 +30,7 @@ class GameState:
         self.currentCastlingRight = CastleRights(True, True, True, True)
         self.castleRightsLog = [CastleRights(self.currentCastlingRight.wks, self.currentCastlingRight.bks, 
                                              self.currentCastlingRight.wqs, self.currentCastlingRight.bqs)]
+        self.enPassantPossibleLog = [self.enPassantPossible]
 
     def makeMove(self, move):
         self.board[move.startRow][move.startCol] = "--"
@@ -37,6 +38,7 @@ class GameState:
         self.moveLog.append(move) #Line save
         self.whiteToMove = not self.whiteToMove
         # updates the king's location
+
         if move.pieceMoved == 'wK':
             self.whiteKingLocation = (move.endRow, move.endCol)
         elif move.pieceMoved == 'bK':
@@ -51,6 +53,7 @@ class GameState:
             self.board[move.startRow][move.endCol] = "--" # capturing the pawn
         
         # update en passantPossible variable
+        self.enPassantPossibleLog.append(self.enPassantPossible)
         if move.pieceMoved[1] == 'P' and abs(move.startRow - move.endRow) == 2: # only on 2 square pawn advances
             self.enPassantPossible = ((move.startRow + move.endRow)//2, move.startCol)
         else:
@@ -87,11 +90,10 @@ class GameState:
             if lastMove.isEnPassantMove:
                 self.board[lastMove.endRow][lastMove.endCol] = "--" # leave landing square blank
                 self.board[lastMove.startRow][lastMove.endCol] = lastMove.pieceCaptured
-                self.enPassantPossible = (lastMove.endRow, lastMove.endCol)
             
-            # undo 2 square pawn advance
-            if lastMove.pieceMoved[1] == 'P' and abs(lastMove.startRow - lastMove.endRow) == 2:
-                self.enPassantPossible = ()
+            self.enPassantPossible = self.enPassantPossibleLog.pop()
+            
+            # undo 2 square pawn advance - nothing needed as we restored from log
 
             # undo castle rights
             self.castleRightsLog.pop() # get rid of the new castle rights from the move we are undoing
@@ -321,6 +323,20 @@ class GameState:
         if self.board[r][c-1] == '--' and self.board[r][c-2] == '--' and self.board[r][c-3] == '--':
             if not self.squareUnderAttack(r, c-1) and not self.squareUnderAttack(r, c-2):
                 moves.append(Move((r, c), (r, c-2), self.board, isCastleMove=True))
+    
+    def scoreBoard(self):
+        """
+        Positive score is good for white, negative is good for black.
+        """
+        pieceValues = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
+        score = 0
+        for row in self.board:
+            for square in row:
+                if square[0] == 'w':
+                    score += pieceValues[square[1]]
+                elif square[0] == 'b':
+                    score -= pieceValues[square[1]]
+        return score
 
 class CastleRights():
     def __init__(self, wks, bks, wqs, bqs):
