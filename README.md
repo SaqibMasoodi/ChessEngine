@@ -2,7 +2,7 @@
 
 We will dethrone chess.com in sha Allah
 
-[**Live Web Preview**](https://saqibmasoodi.github.io/ChessEngine/)
+[**Design preview (still a work in progress)**](https://saqibmasoodi.github.io/ChessEngine/)
 
 ## Features
 
