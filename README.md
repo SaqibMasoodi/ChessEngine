@@ -42,4 +42,4 @@ python Chess/ChessMain.py
 For a full breakdown of the assets, audio, and algorithmic resources used in this project, please refer to my [CREDITS.md](Credits) file.
 
 ---
-![Here is a screengrab!](image-1.png)
+![Here is a screengrab!](image.png)
