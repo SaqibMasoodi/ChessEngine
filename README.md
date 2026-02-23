@@ -2,16 +2,11 @@
 
 We will dethrone chess.com, Insha'Allah.
 
-## Features
-- **Retro UI:** Simple brown and cream colors with 3D buttons.
-- **Auto-Flip Board:** Rotates so you always play from the bottom.
-- **Alerts:** On-screen messages for check, checkmate, and invalid moves.
-- **Image Viewer:** Shows changing pictures from the `Chess/images/media/` folder.
-- **Move Log:** Shows the history of white and black moves.
-- **Chess Rules:** Includes castling, en passant, and pawn promotion.
-- **Sounds:** Plays audio for moves, captures, checks, and errors.
+## Constraints
+- **Over-the-board PvP:** Two players take turns on the same device, with the board rotating so each player always plays from the bottom.
+- **No AI Support (Yet):** Currently supports only real-world, two-player matches—no bot integration.
 
-For more details on how the engine works, read the [Engine Explanation](ENGINE_EXPLANATION.md).
+I have documented how the engine works in [Engine Explanation](ENGINE_EXPLANATION.md). 
 
 ## Installation
 Clone the repository and install dependencies:
@@ -39,7 +34,8 @@ python Chess/ChessMain.py
 - **Keyboard Shortcut:** Press `Z` to rapidly Undo.
 
 ## Credits
-For a full breakdown of the assets, audio, and algorithmic resources used in this project, please refer to my [Credits](CREDITS.md) file.
+For a full breakdown of the assets, audio, and algorithmic resources used in this project, refer to [Credits](CREDITS.md) .
 
 ---
 ![Here is a screengrab!](image.png)
+
