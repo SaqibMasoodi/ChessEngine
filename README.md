@@ -39,7 +39,7 @@ python Chess/ChessMain.py
 - **Keyboard Shortcut:** Press `Z` to rapidly Undo.
 
 ## Credits
-For a full breakdown of the assets, audio, and algorithmic resources used in this project, please refer to my [CREDITS.md](Credits) file.
+For a full breakdown of the assets, audio, and algorithmic resources used in this project, please refer to my [Credits](CREDITS.md) file.
 
 ---
 ![Here is a screengrab!](image.png)
