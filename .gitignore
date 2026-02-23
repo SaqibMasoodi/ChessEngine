@@ -14,6 +14,10 @@ env/
 # System
 Thumbs.db
 Desktop.ini
+.DS_Store
 
-# Agentic
-.gemini/
+# Logs
+*.log
+
+# AI Context
+ai_context/

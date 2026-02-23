@@ -1,9 +1,10 @@
 # Chess Engine Explanation
 
-## Overview
-This file documents the internal working of the Chess implementation found in `Chess/ChessEngine.py`. 
 
-**Important Definition**: In the context of this project, "Engine" refers to a **Game State Manager** and **Rules Validator**. It handles the logic of chess rules (valid moves, checkmate, castling) but **does not currently contain an Artificial Intelligence (AI)** to play against. It is effectively a "Rules Engine" designed to facilitate a 2-player game (PvP).
+## Overview
+This file documents the internal working of `Chess/ChessEngine.py`. 
+
+**Important Definition**: In the context of this project, "Engine" refers to a **Game State Manager** and **Rules Validator**. I call it an engine only because it sounds cool. It handles the logic of chess rules (valid moves, checkmate, castling) but **does not currently contain an Artificial Intelligence (AI)** to play against. It is effectively a "Rules Engine" designed to facilitate a 2-player game (PvP).
 
 ## Logic & Architecture
 
@@ -50,22 +51,44 @@ The engine uses a "Pseudo-Legal" to "Legal" move generation pipeline:
 | **Evaluation** | None | Neural Nets (NNUE), Hand-tuned Heuristics |
 | **Strength** | **0 ELO** (Rule Enforcer) | **3500+ ELO** (Superhuman) |
 
-### 4. User Interface (Python/PyGame)
-The primary interface is built using **PyGame** in `ChessMain.py`.
--   **Game Loop**: A standard event loop runs at 15 FPS, handling user input (mouse clicks) and rendering updates.
--   **Visuals**:
-    -   **Board & Pieces**: Renders the 8x8 grid and overlays PNG images for pieces.
-    -   **Move Log**: A custom-drawn panel (`drawMoveLog`) displays the history of moves in algebraic notation, constructed manually via text blitting.
-    -   **Highlights**: Selected squares and valid moves are highlighted for better UX.
-
-## 5. Standalone Web Preview
-A separate, frontend-only preview is available in `index.html`.
--   **Purpose**: To demonstrate a modernized, aesthetic UI concept ("Retro Tactile") without taking a dependency on the Python backend.
--   **Tech Stack**: HTML, **Tailwind CSS** (via CDN for styling), and Vanilla JavaScript (for board generation and simple interactivity).
--   **Status**: This is a *visual prototype*. It has no game logic, rule enforcement, or AI connectivity. It solely renders a static board state or simple interactive demo.
+### 4. User Interface (Retro Tactile Python)
+The primary interface is built using **PyGame** in `ChessMain.py`, featuring a custom design system:
+-   **Game Layout**: 
+    -   **Visual Hierarchy**: Dynamic board rendering on the left (Auto-flips based on active player turn), and a dual-column Move Log on the right.
+    -   **Status Dialog (CRT)**: A specialized panel utilizing Pygame border shadowing, phosphor-colored masks, and alpha-blended scanlines to deliver transient game states.
+    -   **Media Window**: Below the Status Dialog, cycles through `.png`/`.jpg` files located in `Chess/images/media/` asynchronously using a `p.time.get_ticks()` modulo rendering loop. 
+-   **Design Language**:
+    -   **Tactile Palette**: Earthy colors combined with physical panel CSS-like manipulations (Corner radii, inset shadows, depressed tiles). See `STYLE_GUIDE.md` for exact hex codes.
+    -   **Asset Styling**: 
+        -   **Pieces**: Smooth-scaled to 85% of square size for consistent padding.
+        -   **Coordinates**: Integrated file/rank labels with dynamic color contrast based on tile parity.
+-   **Move Log**: Features a specialized auto-scrolling buffer showing the latest moves in Algebraic Notation (e.g. `1. e4 e5`), ensuring UI stability during long matches.
 
 ## Conclusion
-This engine is a **foundational framework** for a Chess UI. It correctly enforces the rules of Chess, allowing two humans to play. To make it "smart" (AI), one would need to add:
-1.  **Evaluation Function**: To score a board position (e.g., Material count).
-2.  **Search Algorithm**: Minimax or Negamax to look ahead.
-3.  **Optimizations**: Alpha-Beta pruning to filter bad moves early.
+This engine is a **foundational framework** for a Chess UI. It correctly enforces the rules of Chess, allowing two humans to play in a premium-feeling environment. Future work will focus on the Artificial Intelligence layers (Minimax/Alpha-Beta) to transform it from a rule enforcer into a tactical opponent.
+
+---
+
+## Appendix: Status & Error Messages (CRT Dialog)
+
+The following transient and persistent messages are displayed in the Pygame CRT Status Dialog based on game state events:
+
+### Turn States (Persistent)
+- `White to Move`
+- `Black to Move`
+
+### Game End States (Persistent)
+- `Checkmate! White Wins`
+- `Checkmate! Black Wins`
+- `Stalemate`
+
+### In-Game Events (Transient)
+- `Check!` (Displayed briefly when a King is attacked, text turns brown)
+
+### Error Messages (Transient)
+Displayed when the user attempts an invalid action (text turns terra/red):
+- `Invalid: Not your piece` (Clicking an empty square or opponent's piece)
+- `Invalid: You are in Check` (Attempting to move a piece that doesn't resolve a check)
+- `Illegal: Must escape Check` (Attempting a move destination that leaves the King in check)
+- `Illegal: Invalid destination` (Attempting to move a piece to a non-valid square)
+- `Move Undone` (Triggered via Undo button or `Z` key)
