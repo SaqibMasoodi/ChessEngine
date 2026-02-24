@@ -1,9 +1,12 @@
-# Credits
+# The Inventory
+
+Here is a list of everything that tickled my brain and gave me inspiration throughout this project. 
 
 ## Visuals
-- **Icons**: [Pixel Art Icon Collection](https://thenounproject.com/browse/collection-icon/pixel-art-icon-44973/) (The Noun Project)
-- **Pieces**: TBD
 - **Design & Colors**: Inspired by [Portronics Beige Keyboard](https://www.portronics.com/cdn/shop/files/1500x1500-Beige_1_1440x.jpg?v=1763547388)
+- **Icons**: [Pixel Art Icon Collection](https://thenounproject.com/browse/collection-icon/pixel-art-icon-44973/) (The Noun Project)
+- **Pieces**: Took them straight from the internet. 
+- **Media**: Asked gemini to generate pixel art images of a game between kasparov and El-Magneto
 
 ## Audio
 - **Game Events** (`move.mp3`, `capture.mp3`, `check.mp3`): Official Chess.com sounds
@@ -14,3 +17,5 @@
 ## Logic & Learning
 - **Core Rules Engine**: Built from scratch
 - **AI Algorithm (Minimax)**: Based on [NeuralNine Explanation](https://www.youtube.com/watch?v=KU9Ch59-4vw)
+
+![Heres a screengrab!](image.png)
