@@ -3,7 +3,20 @@
 import pygame as p
 import sys
 import os
-sys.path.append('C:\\Users\\masud\\Desktop\\Me')  # Explicitly adds the directory for module lookups
+
+def get_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        # If not running as an executable, use the parent directory of this script
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+# Automatically add the parent directory to sys.path for module lookups
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from Chess import ChessEngine
 
 # Constants and Configuration
@@ -19,7 +32,7 @@ MAX_FPS = 30
 # Assets cache
 IMAGES = {}
 SOUNDS = {}
-MEDIA = [] # List of loaded media images
+MEDIA = [] 
 
 # Retro Color Palette
 COLORS = {
@@ -44,7 +57,7 @@ def loadSounds():
         "move": "move.mp3",
         "capture": "capture.mp3",
         "check": "check.mp3",
-        "error": "error.mp3", # User will download this later
+        "error": "error.mp3", 
         "in_check_error": "youAreInCheck.mp3",
         "click": "click.mp3",
         "deselect": "deselect.mp3",
@@ -54,7 +67,7 @@ def loadSounds():
     
     for key, filename in sound_files.items():
         try:
-            SOUNDS[key] = p.mixer.Sound(f"Chess/sounds/{filename}")
+            SOUNDS[key] = p.mixer.Sound(get_resource_path(f"Chess/sounds/{filename}"))
         except Exception as e:
             print(f"Audio loading warning: Missing {filename}")
 
@@ -65,7 +78,7 @@ def loadImages():
     # Load and scale chess pieces
     pieces = ['wP', 'wR', 'wN', 'wB', 'wK', 'wQ', 'bP', 'bR', 'bN', 'bB', 'bK', 'bQ']
     for piece in pieces:
-        image_path = f"Chess/images/{piece}.png"
+        image_path = get_resource_path(f"Chess/images/{piece}.png")
         img = p.image.load(image_path).convert_alpha()
         # Scale to 85% of square size for a comfortable padding look
         IMAGES[piece] = p.transform.smoothscale(img, (int(SQ_SIZE * 0.85), int(SQ_SIZE * 0.85)))
@@ -82,13 +95,13 @@ def loadImages():
     icon_size = 20 # Standard size for button icons
     for key, filename in icon_map.items():
         try:
-            img = p.image.load(f"Chess/images/icon-library/{filename}").convert_alpha()
+            img = p.image.load(get_resource_path(f"Chess/images/icon-library/{filename}")).convert_alpha()
             IMAGES[key] = p.transform.smoothscale(img, (icon_size, icon_size))
         except Exception as e:
             print(f"Icon loading warning: {e}")
             
     # Load Media Window Images
-    media_dir = "Chess/images/media"
+    media_dir = get_resource_path("Chess/images/media")
     if os.path.exists(media_dir):
         for filename in os.listdir(media_dir):
             if filename.endswith(".png") or filename.endswith(".jpg"):
@@ -131,6 +144,8 @@ def main():
     sqSelected = ()   # Last square selected by user (row, col)
     playerClicks = [] # Track player clicks (start and end squares)
     
+    # State tracking
+    move_log_scroll_offset = 0 # Track scroll position for move log
     undone_moves = []
     sound_enabled = True
     current_message = "White to Move"
@@ -163,10 +178,23 @@ def main():
     while running:
         board_rect = p.Rect(BOARD_PADDING, BOARD_PADDING, BOARD_SIZE, BOARD_SIZE)
         
+        # Calculate panel bounds for scrolling check
+        move_log_panel_y = BOARD_PADDING - 12
+        right_side_bottom = (BOARD_PADDING + BOARD_SIZE + 12)
+        panel_height = (right_side_bottom - move_log_panel_y) - 65 - 50 - 150 - (3 * 15)
+        move_log_rect = p.Rect(BOARD_SIZE + (BOARD_PADDING * 2), move_log_panel_y, MOVE_LOG_WIDTH, panel_height)
+
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             
+            # Mouse wheel scrolling for move log
+            elif e.type == p.MOUSEWHEEL:
+                mouse_pos = p.mouse.get_pos()
+                if move_log_rect.collidepoint(mouse_pos):
+                    # -e.y because scrolling down returns negative, but we want to increase offset
+                    move_log_scroll_offset += -e.y 
+                    
             # Mouse click handling
             elif e.type == p.MOUSEBUTTONDOWN:
                 location = p.mouse.get_pos()
@@ -261,6 +289,13 @@ def main():
                                     moveMade = True
                                     undone_moves.clear() # Clear redo stack on new move
                                     
+                                    # Snap scroll to bottom when a new move is made
+                                    total_rows = (len(gs.moveLog) + 1) // 2
+                                    max_visible_float = (move_log_rect.height - 70) / 22
+                                    max_visible = max(1, int(max_visible_float))
+                                    if total_rows > max_visible:
+                                        # Force scroll offset to the max possible value
+                                        move_log_scroll_offset = max(0, total_rows - max_visible)
                                     
                                     # Play appropriate sound based on game state
                                     if gs.inCheck(): 
@@ -321,7 +356,7 @@ def main():
                 current_message = "White to Move" if gs.whiteToMove else "Black to Move"
         
         # Rendering
-        drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message)
+        drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, move_log_scroll_offset)
         
         # Optional: Full screen text overlay for end game
         if gs.checkMate:
@@ -346,7 +381,7 @@ def drawControls(screen, buttons, sound_enabled):
     control_panel_height = 65
     panel_y = (BOARD_PADDING + BOARD_SIZE + 12) - control_panel_height
     panel_rect = p.Rect(BOARD_SIZE + (BOARD_PADDING * 2), panel_y, MOVE_LOG_WIDTH, control_panel_height)
-    drawTactilePanel(screen, panel_rect, COLORS["border"], COLORS["panel"])
+    drawTactilePanel(screen, panel_rect, COLORS["dark"], COLORS["panel"], shadow_offset=6)
     
     for action, rect in buttons.items():
         # Action button visuals (pushable keys)
@@ -391,7 +426,8 @@ def drawMoveLog(screen, gs):
     panel_height = (right_side_bottom - panel_y) - control_panel_height - status_height - media_height - (3 * gap_between_panels)
     
     panel_rect = p.Rect(BOARD_SIZE + (BOARD_PADDING * 2), panel_y, MOVE_LOG_WIDTH, panel_height)
-    drawTactilePanel(screen, panel_rect, COLORS["border"], COLORS["panel"])
+    # Using the same styling as the board frame: COLORS["dark"] border, COLORS["panel"] inside, shadow_offset=6
+    drawTactilePanel(screen, panel_rect, COLORS["dark"], COLORS["panel"], shadow_offset=6)
     
     # Render Sidebar Header & Column Titles
     font = p.font.SysFont("Courier New", 16, True)
@@ -427,10 +463,34 @@ def drawMoveLog(screen, gs):
     line_spacing = 22
     start_y = panel_rect.y + 65
     
-    # Auto-scrolling logic
+    # Auto-scrolling logic combined with manual scroll offset
     max_visible_float = (panel_rect.height - 70) / line_spacing
     max_visible = max(1, int(max_visible_float))
-    start_idx = max(0, len(moveRows) - max_visible)
+    
+    total_rows = len(moveRows)
+    max_scroll = max(0, total_rows - max_visible)
+    
+    # We must receive the scroll offset from the main scope 
+    # Because drawMoveLog is called from drawGameState, we'll need to fetch it or pass it.
+    # To avoid changing all signatures across the app, we can cheat slightly by modifying
+    # the dictionary, but passing it through drawGameState is cleaner.
+    
+    # We handle the scroll validation here:
+    global move_log_saved_offset
+    # Read kwargs from where we modified drawGameState
+    scroll_offset = gs.ui_scroll_offset if hasattr(gs, 'ui_scroll_offset') else 0
+
+    # Clamp scroll offset between 0 and max_scroll
+    if scroll_offset < 0:
+        scroll_offset = 0
+    elif scroll_offset > max_scroll:
+        scroll_offset = max_scroll
+        
+    start_idx = scroll_offset
+    
+    # Write it back if we clamped it so wheel feels responsive
+    if hasattr(gs, 'ui_scroll_offset'):
+        gs.ui_scroll_offset = scroll_offset
     
     for i in range(start_idx, len(moveRows)):
         row_idx = i - start_idx
@@ -454,6 +514,29 @@ def drawMoveLog(screen, gs):
         if black_mv != "":
             text_black = font_moves.render(black_mv, True, COLORS["dark"])
             screen.blit(text_black, (black_x, y_pos))
+
+    # Scrollbar
+    # Calculate scrollbar height based on how many items fit compared to total
+    total_items = len(moveRows)
+    if total_items > max_visible:
+        scrollbar_width = 6
+        scrollbar_x = panel_rect.right - 12
+        scrollbar_y_start = panel_rect.y + 65
+        scrollbar_max_height = panel_rect.height - 75
+        
+        # Calculate knob size and position
+        knob_height = max(15, int((max_visible / total_items) * scrollbar_max_height))
+        # proportion of how far down we are scrolled
+        scroll_ratio = start_idx / max_scroll if max_scroll > 0 else 0
+        knob_y = scrollbar_y_start + (scrollbar_max_height - knob_height) * scroll_ratio
+        
+        # Draw track
+        track_rect = p.Rect(scrollbar_x, scrollbar_y_start, scrollbar_width, scrollbar_max_height)
+        p.draw.rect(screen, COLORS["shadow"], track_rect, border_radius=3)
+        
+        # Draw knob
+        knob_rect = p.Rect(scrollbar_x, knob_y, scrollbar_width, knob_height)
+        p.draw.rect(screen, COLORS["dark"], knob_rect, border_radius=3)
 
 def highlightSquares(screen, gs, validMoves, sqSelected):
     """
@@ -479,10 +562,12 @@ def highlightSquares(screen, gs, validMoves, sqSelected):
                     move_visual_c = move.endCol if gs.whiteToMove else 7 - move.endCol
                     screen.blit(s, (BOARD_PADDING + move_visual_c * SQ_SIZE + 2, BOARD_PADDING + move_visual_r * SQ_SIZE + 2))
 
-def drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message):
+def drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, scroll_offset=0):
     """Draw the current game state."""
     screen.fill(COLORS["bg"])
     drawControls(screen, buttons, sound_enabled)
+    
+    gs.ui_scroll_offset = scroll_offset # Store it temporarily in gs for drawMoveLog to access
     drawMoveLog(screen, gs)
     drawStatusDialog(screen, current_message)
     drawMediaWindow(screen)
@@ -509,7 +594,7 @@ def drawStatusDialog(screen, current_message):
     panel_rect = p.Rect(BOARD_SIZE + (BOARD_PADDING * 2), status_y, MOVE_LOG_WIDTH, status_height)
     
     # Outer Bezel (Tactile panel)
-    drawTactilePanel(screen, panel_rect, COLORS["border"], COLORS["panel"])
+    drawTactilePanel(screen, panel_rect, COLORS["dark"], COLORS["panel"], shadow_offset=6)
     
     # Inner CRT Screen
     crt_rect = panel_rect.inflate(-12, -12)
@@ -556,21 +641,26 @@ def drawMediaWindow(screen):
     media_y = status_y - gap_between_panels - media_height
     
     panel_rect = p.Rect(BOARD_SIZE + (BOARD_PADDING * 2), media_y, MOVE_LOG_WIDTH, media_height)
+    # Using the same styling as the board frame border
+    drawTactilePanel(screen, panel_rect, COLORS["dark"], COLORS["panel"], shadow_offset=6)
+    
+    # Internal media rect size
+    inner_rect = panel_rect.inflate(-16, -16)
     
     # Draw depressed panel background
-    p.draw.rect(screen, COLORS["cream"], panel_rect.move(1, 1), border_radius=8) # Highlight
-    p.draw.rect(screen, COLORS["shadow"], panel_rect.move(-1, -1), border_radius=8) # Shadow
-    p.draw.rect(screen, COLORS["bg"], panel_rect, border_radius=8) # Deep bg
+    p.draw.rect(screen, COLORS["shadow"], inner_rect.move(1, 1), border_radius=8) # Highlight
+    p.draw.rect(screen, COLORS["dark"], inner_rect.move(-1, -1), border_radius=8) # Shadow
+    p.draw.rect(screen, COLORS["bg"], inner_rect, border_radius=8) # Deep bg
     
     # Render Media if available
     if len(MEDIA) > 0:
         # Loop through images every 750ms
         current_time = p.time.get_ticks()
-        frame_duration = 750 # (ms) 
+        frame_duration = 1500 # (ms) 
         frame_idx = (current_time // frame_duration) % len(MEDIA)
         img = MEDIA[frame_idx]
         
-        img_rect = img.get_rect(center=panel_rect.center)
+        img_rect = img.get_rect(center=inner_rect.center)
         screen.blit(img, img_rect)
         
         # Round the images and bevel them so they look inside the panel
