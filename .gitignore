@@ -19,3 +19,7 @@ Desktop.ini
 # Logs
 *.log
 
+# PyInstaller
+build/
+dist/
+*.spec

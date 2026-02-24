@@ -89,7 +89,9 @@ def loadImages():
         "redo": "noun-arrow-right-1507911.png",
         "reset": "noun-reset-1507869.png",
         "sound_on": "noun-speaker-1507885.png",
-        "sound_off": "noun-mute-1507856.png"
+        "sound_off": "noun-mute-1507856.png",
+        "lock": "noun-lock-1507844.png",
+        "unlock": "noun-unlock-1507895.png"
     }
     
     icon_size = 20 # Standard size for button icons
@@ -148,6 +150,7 @@ def main():
     move_log_scroll_offset = 0 # Track scroll position for move log
     undone_moves = []
     sound_enabled = True
+    board_locked_to = None # None means auto-rotate, True means locked to White, False means locked to Black
     current_message = "White to Move"
     message_timer = 0 # To handle transient messages
     
@@ -158,14 +161,15 @@ def main():
     control_panel_y = (BOARD_PADDING + BOARD_SIZE + 12) - control_panel_height_layout
     btn_start_y = control_panel_y + 15
     btn_gap = 12
-    btn_width = (MOVE_LOG_WIDTH - 30 - (3 * btn_gap)) // 4
+    btn_width = (MOVE_LOG_WIDTH - 30 - (4 * btn_gap)) // 5
     btn_height = 35
 
     buttons = {
         "undo": p.Rect(btn_start_x, btn_start_y, btn_width, btn_height),
         "redo": p.Rect(btn_start_x + btn_width + btn_gap, btn_start_y, btn_width, btn_height),
         "reset": p.Rect(btn_start_x + 2 * (btn_width + btn_gap), btn_start_y, btn_width, btn_height),
-        "sound": p.Rect(btn_start_x + 3 * (btn_width + btn_gap), btn_start_y, btn_width, btn_height)
+        "flip": p.Rect(btn_start_x + 3 * (btn_width + btn_gap), btn_start_y, btn_width, btn_height),
+        "sound": p.Rect(btn_start_x + 4 * (btn_width + btn_gap), btn_start_y, btn_width, btn_height)
     }
     
     
@@ -235,8 +239,18 @@ def main():
                             playerClicks = []
                             moveMade = False
                             undone_moves.clear()
+                            board_locked_to = None
                             play_sound("reset")
                             current_message = "White to Move"
+                        elif action == "flip":
+                            if board_locked_to is None:
+                                board_locked_to = gs.whiteToMove
+                                current_message = "Board Locked"
+                            else:
+                                board_locked_to = None
+                                current_message = "Auto-Rotate Enabled"
+                            play_sound("click")
+                            message_timer = p.time.get_ticks()
                         elif action == "sound":
                             sound_enabled = not sound_enabled
                             play_sound("click")
@@ -247,10 +261,12 @@ def main():
                 
                 # Board Clicks
                 if e.type == p.MOUSEBUTTONDOWN and board_rect.collidepoint(location):
+                    visual_bottom_is_white = gs.whiteToMove if board_locked_to is None else board_locked_to
+                    
                     col = (location[0] - BOARD_PADDING) // SQ_SIZE
                     row = (location[1] - BOARD_PADDING) // SQ_SIZE
                     
-                    if not gs.whiteToMove:
+                    if not visual_bottom_is_white:
                         col = 7 - col
                         row = 7 - row
                     
@@ -356,13 +372,11 @@ def main():
                 current_message = "White to Move" if gs.whiteToMove else "Black to Move"
         
         # Rendering
-        drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, move_log_scroll_offset)
+        drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, board_locked_to, move_log_scroll_offset)
         
-        # Optional: Full screen text overlay for end game
-        if gs.checkMate:
-            drawStatusText(screen, 'Checkmate! ' + ('Black' if gs.whiteToMove else 'White') + ' Wins')
-        elif gs.staleMate:
-            drawStatusText(screen, 'Stalemate')
+        # Optional: Tactile popup for end game
+        if gs.checkMate or gs.staleMate:
+            drawEndGamePopup(screen, gs)
 
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -376,7 +390,7 @@ def drawTactilePanel(screen, rect, border_color, bg_color, shadow_offset=4, bord
     p.draw.rect(screen, bg_color, rect, border_radius=border_radius)
     p.draw.rect(screen, border_color, rect, 2, border_radius=border_radius)
 
-def drawControls(screen, buttons, sound_enabled):
+def drawControls(screen, buttons, sound_enabled, board_locked_to):
     """Renders the bottom control bar with tactile buttons and icons."""
     control_panel_height = 65
     panel_y = (BOARD_PADDING + BOARD_SIZE + 12) - control_panel_height
@@ -390,6 +404,8 @@ def drawControls(screen, buttons, sound_enabled):
         # Determine which icon to display
         if action == "sound":
             icon_key = "sound_on" if sound_enabled else "sound_off"
+        elif action == "flip":
+            icon_key = "lock" if board_locked_to is not None else "unlock"
         else:
             icon_key = action
             
@@ -538,15 +554,17 @@ def drawMoveLog(screen, gs):
         knob_rect = p.Rect(scrollbar_x, knob_y, scrollbar_width, knob_height)
         p.draw.rect(screen, COLORS["dark"], knob_rect, border_radius=3)
 
-def highlightSquares(screen, gs, validMoves, sqSelected):
+def highlightSquares(screen, gs, validMoves, sqSelected, board_locked_to):
     """
     Visually highlights the selected square and all valid moves for that piece.
     """
     if sqSelected != ():
         r, c = sqSelected
+        visual_bottom_is_white = gs.whiteToMove if board_locked_to is None else board_locked_to
+        
         if gs.board[r][c][0] == ('w' if gs.whiteToMove else 'b'):
-            visual_r = r if gs.whiteToMove else 7 - r
-            visual_c = c if gs.whiteToMove else 7 - c
+            visual_r = r if visual_bottom_is_white else 7 - r
+            visual_c = c if visual_bottom_is_white else 7 - c
             
             # Highlight selection square
             s = p.Surface((SQ_SIZE - 4, SQ_SIZE - 4))
@@ -558,23 +576,23 @@ def highlightSquares(screen, gs, validMoves, sqSelected):
             s.fill(p.Color('yellow'))
             for move in validMoves:
                 if move.startRow == r and move.startCol == c:
-                    move_visual_r = move.endRow if gs.whiteToMove else 7 - move.endRow
-                    move_visual_c = move.endCol if gs.whiteToMove else 7 - move.endCol
+                    move_visual_r = move.endRow if visual_bottom_is_white else 7 - move.endRow
+                    move_visual_c = move.endCol if visual_bottom_is_white else 7 - move.endCol
                     screen.blit(s, (BOARD_PADDING + move_visual_c * SQ_SIZE + 2, BOARD_PADDING + move_visual_r * SQ_SIZE + 2))
 
-def drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, scroll_offset=0):
+def drawGameState(screen, gs, validMoves, sqSelected, buttons, sound_enabled, current_message, board_locked_to, scroll_offset=0):
     """Draw the current game state."""
     screen.fill(COLORS["bg"])
-    drawControls(screen, buttons, sound_enabled)
+    drawControls(screen, buttons, sound_enabled, board_locked_to)
     
     gs.ui_scroll_offset = scroll_offset # Store it temporarily in gs for drawMoveLog to access
     drawMoveLog(screen, gs)
     drawStatusDialog(screen, current_message)
     drawMediaWindow(screen)
     
-    drawBoard(screen, sqSelected, gs.whiteToMove)
-    highlightSquares(screen, gs, validMoves, sqSelected)
-    drawPieces(screen, gs.board, sqSelected, gs.whiteToMove)
+    drawBoard(screen, sqSelected, gs.whiteToMove, board_locked_to)
+    highlightSquares(screen, gs, validMoves, sqSelected, board_locked_to)
+    drawPieces(screen, gs.board, sqSelected, gs.whiteToMove, board_locked_to)
     
 def drawStatusDialog(screen, current_message):
     """
@@ -675,19 +693,21 @@ def drawMediaWindow(screen):
         text = font.render("No Media Art Found", True, COLORS["shadow"])
         screen.blit(text, (panel_rect.centerx - text.get_width() // 2, panel_rect.centery - text.get_height() // 2))
 
-def drawBoard(screen, sqSelected, whiteToMove):
+def drawBoard(screen, sqSelected, whiteToMove, board_locked_to):
     """Draw the chessboard with retro colors and tactile tiles."""
     # Draw the board's wooden/brown outer framing
     board_frame = p.Rect(BOARD_PADDING - 12, BOARD_PADDING - 12, BOARD_SIZE + 24, BOARD_SIZE + 24)
     drawTactilePanel(screen, board_frame, COLORS["dark"], COLORS["brown"], shadow_offset=6)
+
+    visual_bottom_is_white = whiteToMove if board_locked_to is None else board_locked_to
 
     colors = [COLORS["square_light"], COLORS["square_dark"]]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[(r + c) % 2]
             
-            visual_r = r if whiteToMove else 7 - r
-            visual_c = c if whiteToMove else 7 - c
+            visual_r = r if visual_bottom_is_white else 7 - r
+            visual_c = c if visual_bottom_is_white else 7 - c
             
             # 3D Tile effect
             tile_rect = p.Rect(BOARD_PADDING + visual_c * SQ_SIZE + 2, BOARD_PADDING + visual_r * SQ_SIZE + 2, SQ_SIZE - 4, SQ_SIZE - 4)
@@ -712,10 +732,12 @@ def drawBoard(screen, sqSelected, whiteToMove):
                 lbl = font.render(chr(ord('a') + c), True, colors[1] if (r+c)%2==0 else colors[0])
                 screen.blit(lbl, (BOARD_PADDING + (visual_c+1)*SQ_SIZE - 12, BOARD_PADDING + BOARD_SIZE - 14))
 
-def drawPieces(screen, board, sqSelected, whiteToMove):
+def drawPieces(screen, board, sqSelected, whiteToMove, board_locked_to):
     """
     Renders pieces on the board with centered square positioning and depth awareness.
     """
+    visual_bottom_is_white = whiteToMove if board_locked_to is None else board_locked_to
+
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = board[r][c]
@@ -723,8 +745,8 @@ def drawPieces(screen, board, sqSelected, whiteToMove):
                 img = IMAGES[piece]
                 offset = (SQ_SIZE - img.get_width()) // 2
                 
-                visual_r = r if whiteToMove else 7 - r
-                visual_c = c if whiteToMove else 7 - c
+                visual_r = r if visual_bottom_is_white else 7 - r
+                visual_c = c if visual_bottom_is_white else 7 - c
                 
                 # Shift piece down if the tile it's sitting on is depressed
                 is_selected = sqSelected == (r, c)
@@ -733,21 +755,59 @@ def drawPieces(screen, board, sqSelected, whiteToMove):
                 
                 screen.blit(img, p.Rect(BOARD_PADDING + visual_c * SQ_SIZE + x_offset, BOARD_PADDING + visual_r * SQ_SIZE + y_offset, SQ_SIZE, SQ_SIZE))
 
-def drawStatusText(screen, text):
+def drawEndGamePopup(screen, gs):
     """
-    Renders an overlay with game status text (Checkmate, Stalemate).
+    Renders a tactile popup overlay for Checkmate and Stalemate with custom messages.
+    Centered specifically over the chessboard.
     """
-    font = p.font.SysFont("Courier New", 32, True)
-    text_surf = font.render(text, True, COLORS["dark"])
-    text_rect = text_surf.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    if not gs.checkMate and not gs.staleMate:
+        return
+        
+    # Define custom messages
+    if gs.checkMate:
+        if gs.whiteToMove:
+            title = "BLACK VICTORIOUS"
+            subtitle = "Checkmate. The Shadows Reign."
+        else:
+            title = "WHITE VICTORIOUS"
+            subtitle = "Checkmate. The Light Prevails."
+    elif gs.staleMate:
+        title = "STALEMATE"
+        subtitle = "A peaceful, yet bitter draw."
+
+    # popup dimensions (smaller & centered ONLY over the board)
+    popup_width = 300
+    popup_height = 120
     
-    # Semi-transparent overlay background
-    overlay = p.Surface((WIDTH, HEIGHT))
-    overlay.set_alpha(150)
-    overlay.fill((255, 255, 255))
-    screen.blit(overlay, (0, 0))
+    # Board region is from BOARD_PADDING to BOARD_PADDING + BOARD_SIZE
+    board_center_x = BOARD_PADDING + (BOARD_SIZE // 2)
+    board_center_y = BOARD_PADDING + (BOARD_SIZE // 2)
     
-    screen.blit(text_surf, text_rect)
+    popup_rect = p.Rect(board_center_x - (popup_width // 2), 
+                        board_center_y - (popup_height // 2), 
+                        popup_width, popup_height)
+
+    # Outer Bezel (Tactile panel without shadow)
+    drawTactilePanel(screen, popup_rect, COLORS["dark"], COLORS["panel"], shadow_offset=0)
+    
+    # Inner Depressed Screen
+    inner_rect = popup_rect.inflate(-16, -16)
+    p.draw.rect(screen, COLORS["shadow"], inner_rect.move(1, 1), border_radius=8) # Highlight
+    p.draw.rect(screen, COLORS["dark"], inner_rect.move(-1, -1), border_radius=8) # Shadow
+    p.draw.rect(screen, COLORS["bg"], inner_rect, border_radius=8) # Deep bg
+    
+    # Render Text
+    font_title = p.font.SysFont("Courier New", 22, True)
+    font_subtitle = p.font.SysFont("Courier New", 12, False)
+    
+    title_surf = font_title.render(title, True, COLORS["dark"])
+    subtitle_surf = font_subtitle.render(subtitle, True, COLORS["terra"] if gs.checkMate else COLORS["brown"])
+    
+    title_rect = title_surf.get_rect(center=(inner_rect.centerx, inner_rect.centery - 12))
+    subtitle_rect = subtitle_surf.get_rect(center=(inner_rect.centerx, inner_rect.centery + 15))
+    
+    screen.blit(title_surf, title_rect)
+    screen.blit(subtitle_surf, subtitle_rect)
 
 def showPromotionDialog(screen, isWhite):
     """

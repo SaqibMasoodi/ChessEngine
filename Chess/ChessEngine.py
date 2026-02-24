@@ -143,6 +143,20 @@ class GameState:
                     self.currentCastlingRight.bqs = False
                 elif move.startCol == 7: # Right rook
                     self.currentCastlingRight.bks = False
+
+        # If a rook is captured on its starting square, revoke opposite castling rights
+        if move.pieceCaptured == 'wR':
+            if move.endRow == 7:
+                if move.endCol == 0:
+                    self.currentCastlingRight.wqs = False
+                elif move.endCol == 7:
+                    self.currentCastlingRight.wks = False
+        elif move.pieceCaptured == 'bR':
+            if move.endRow == 0:
+                if move.endCol == 0:
+                    self.currentCastlingRight.bqs = False
+                elif move.endCol == 7:
+                    self.currentCastlingRight.bks = False
           
     def getValidMoves(self):
         """
@@ -195,13 +209,72 @@ class GameState:
     def squareUnderAttack(self, r, c):
         """
         Determines if a square is being attacked by the opponent.
+        Optimized to look outwards from the square instead of generating all opponent moves.
         """
-        self.whiteToMove = not self.whiteToMove # Switch to opponent
-        oppMoves = self.getAllPossibleMoves()
-        self.whiteToMove = not self.whiteToMove # Switch back
-        for move in oppMoves:
-            if move.endRow == r and move.endCol == c:
-                return True
+        enemyColor = "b" if self.whiteToMove else "w"
+        
+        # 1. Check outward for Rooks and Queens (horizontal/vertical)
+        directions = ((-1, 0), (0, -1), (1, 0), (0, 1))
+        for d in directions:
+            for i in range(1, 8):
+                endRow, endCol = r + d[0] * i, c + d[1] * i
+                if 0 <= endRow < 8 and 0 <= endCol < 8:
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == "--":
+                        continue
+                    elif endPiece[0] == enemyColor and endPiece[1] in ('R', 'Q'):
+                        return True
+                    else:
+                        break # Blocked by own piece or non-sliding enemy
+                else:
+                    break
+                    
+        # 2. Check outward for Bishops and Queens (diagonal)
+        directions = ((-1, -1), (-1, 1), (1, -1), (1, 1))
+        for d in directions:
+            for i in range(1, 8):
+                endRow, endCol = r + d[0] * i, c + d[1] * i
+                if 0 <= endRow < 8 and 0 <= endCol < 8:
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece == "--":
+                        continue
+                    elif endPiece[0] == enemyColor and endPiece[1] in ('B', 'Q'):
+                        return True
+                    else:
+                        break # Blocked
+                else:
+                    break
+                    
+        # 3. Check for Knights
+        knightMoves = ((-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1))
+        for m in knightMoves:
+            endRow, endCol = r + m[0], c + m[1]
+            if 0 <= endRow < 8 and 0 <= endCol < 8:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[0] == enemyColor and endPiece[1] == 'N':
+                    return True
+                    
+        # 4. Check for Pawns
+        # Opponent pawns attack diagonally downwards if whiteToMove (enemy is Black)
+        pawnRowOffset = -1 if self.whiteToMove else 1
+        endRow = r + pawnRowOffset
+        if 0 <= endRow < 8:
+            for colOffset in (-1, 1):
+                endCol = c + colOffset
+                if 0 <= endCol < 8:
+                    endPiece = self.board[endRow][endCol]
+                    if endPiece[0] == enemyColor and endPiece[1] == 'P':
+                        return True
+                        
+        # 5. Check for Enemy King
+        kingMoves = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
+        for m in kingMoves:
+            endRow, endCol = r + m[0], c + m[1]
+            if 0 <= endRow < 8 and 0 <= endCol < 8:
+                endPiece = self.board[endRow][endCol]
+                if endPiece[0] == enemyColor and endPiece[1] == 'K':
+                    return True
+                    
         return False
     
     def getAllPossibleMoves(self):
