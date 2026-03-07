@@ -9,6 +9,7 @@ A chess engine where two players can play against each other on the same board i
 Install RetroChess.exe for windows from the [Releases Page](https://github.com/SaqibMasoodi/ChessEngine/releases).
 
 or
+
 Clone the repository and install dependencies:
 
 ```bash
@@ -41,4 +42,5 @@ For a full breakdown of the assets, audio, and algorithmic resources used in thi
 
 ---
 ![Here is a screengrab!](image.png)
+
 
