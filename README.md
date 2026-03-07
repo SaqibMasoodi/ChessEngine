@@ -2,18 +2,13 @@
 
 We will dethrone chess.com, Insha'Allah.
 
-## Features
-- **Retro UI:** Simple brown and cream colors with 3D buttons.
-- **Auto-Flip Board:** Rotates so you always play from the bottom.
-- **Alerts:** On-screen messages for check, checkmate, and invalid moves.
-- **Image Viewer:** Shows changing pictures from the `Chess/images/media/` folder.
-- **Move Log:** Shows the history of white and black moves.
-- **Chess Rules:** Includes castling, en passant, and pawn promotion.
-- **Sounds:** Plays audio for moves, captures, checks, and errors.
-
-For more details on how the engine works, read the [Engine Explanation](ENGINE_EXPLANATION.md).
+## Description
+A chess engine where two players can play against each other on the same board in a turn-based game, with a simple modern UI along with proper move validation and rule enforcement.
 
 ## Installation
+Install RetroChess.exe for windows from the [Releases Page](https://github.com/SaqibMasoodi/ChessEngine/releases).
+
+or
 Clone the repository and install dependencies:
 
 ```bash
@@ -38,8 +33,12 @@ python Chess/ChessMain.py
   - **Mute**: Toggles sound engine.
 - **Keyboard Shortcut:** Press `Z` to rapidly Undo.
 
+## Engine Explanation
+Read the logic behind the engine in the [Engine Explanation](ENGINE_EXPLANATION.md).
+
 ## Credits
 For a full breakdown of the assets, audio, and algorithmic resources used in this project, please refer to my [Credits](CREDITS.md) file.
 
 ---
 ![Here is a screengrab!](image.png)
+
