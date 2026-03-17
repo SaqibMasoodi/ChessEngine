@@ -133,7 +133,7 @@ def main():
     """
     p.init()
     screen = p.display.set_mode((WIDTH, HEIGHT))
-    p.display.set_caption("Retro Chess - Tactical Interface")
+    p.display.set_caption("Retro Chess")
     clock = p.time.Clock()
     
     gs = ChessEngine.GameState()
